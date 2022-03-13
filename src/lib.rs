@@ -13,6 +13,7 @@ use rand::Rng;
 
 pub mod join;
 pub mod list;
+pub mod chain;
 pub mod map;
 
 

@@ -10,3 +10,7 @@ default = [ "rand/default" ]
 version = "0.8"
 default-features = false
 features = [ "alloc" ]
+
+[dependencies.either]
+version = "1.6"
+default-features = false
