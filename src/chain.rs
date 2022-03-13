@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use either::Either;
+pub use either::Either;
 use rand::Rng;
 
 use crate::Urne;
