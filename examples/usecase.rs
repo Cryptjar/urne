@@ -73,10 +73,7 @@ where
 	}
 }
 
-// Needs `default` feature to run (i.e. `rand/default`)
-#[cfg(feature = "default")]
-fn main() {
-	use rand::thread_rng;
+fn test<R: Rng>(mut rng: R) {
 
 	let adj_list = vec!["flat", "nice", "tall", "small", "avr", "cold"];
 	let adj_model = List::new(adj_list);
@@ -93,14 +90,24 @@ fn main() {
 	println!();
 	println!("Peeking:");
 	let mut persons = person_model.peeking();
-	print_multiple_items(&mut persons, thread_rng());
+	print_multiple_items(&mut persons, &mut rng);
 	println!();
-	print_multiple_items(&mut persons, thread_rng());
+	print_multiple_items(&mut persons, &mut rng);
 
 	println!();
 	println!("Taking:");
 	let mut persons = person_model.taking();
-	print_multiple_items(&mut persons, thread_rng());
+	print_multiple_items(&mut persons, &mut rng);
 	println!();
-	print_multiple_items(&mut persons, thread_rng());
+	print_multiple_items(&mut persons, &mut rng);
+}
+
+fn main() {
+	// Needs `default` feature to run (i.e. `rand/default`)
+	#[cfg(feature = "default")]
+	{
+	use rand::thread_rng;
+
+	test(thread_rng());
+	}
 }
