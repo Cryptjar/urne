@@ -5,32 +5,10 @@ use rand::Rng;
 use urne::join::Joiner;
 use urne::list::List;
 use urne::map::Mapper;
-use urne::Urne;
 use urne::UrneModel;
+use urne::UrneObj;
 
-/*
-// Aggregate as Pool
-pub(crate) fn generate(length: usize) -> Vec<Self> {
-	let given_names = given_names();
-	let surnames = surnames();
 
-	given_names.choose_multiple(&mut thread_rng(), length)
-		.zip(given_names.choose_multiple(&mut thread_rng(), length))
-		.zip(surnames.choose_multiple(&mut thread_rng(), length))
-		.map(|((g,m),l)| {
-			let with_middle_name = thread_rng().gen_ratio(
-				MIDDLE_NAME_PROB_PER_CENT,
-				100
-			);
-			Name::from_names(
-				g.clone(),
-				with_middle_name.as_some(m.clone()),
-				l.clone()
-			)
-		})
-		.collect()
-}
-*/
 
 #[derive(Debug)]
 struct Person<'a> {
@@ -55,20 +33,8 @@ fn copy_str<'a, 'b>(s: &'a &'b str) -> &'a str {
 	*s
 }
 
-fn print_some_items<R: Rng, P: Urne>(mut pool: P, mut rng: R)
-where
-	P::Item: Display,
-{
-	println!("{}", pool.choose(&mut rng).unwrap());
-	println!("{}", pool.choose(&mut rng).unwrap());
-	println!("{}", pool.choose(&mut rng).unwrap());
-}
-
-fn print_multiple_items<R: Rng, P: Urne>(mut pool: P, rng: R)
-where
-	P::Item: Display,
-{
-	for e in pool.choose_multiple(rng, 3).unwrap() {
+fn print_multiple_items<R: Rng, I: Display>(pool: &mut dyn UrneObj<R, Item = I>, mut rng: R) {
+	for e in pool.choose_multiple(&mut rng, 3).unwrap() {
 		println!("{}", e);
 	}
 }

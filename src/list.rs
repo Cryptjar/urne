@@ -5,7 +5,7 @@ use rand::seq::SliceRandom;
 use rand::Rng;
 
 use crate::Urne;
-use crate::Urnenmodell;
+use crate::UrneModel;
 
 pub struct List<L, T> {
 	pub list: L,
@@ -22,7 +22,7 @@ where
 		}
 	}
 }
-impl<L, T> Urnenmodell for List<L, T>
+impl<L, T> UrneModel for List<L, T>
 where
 	L: AsRef<[T]>,
 {
@@ -48,14 +48,33 @@ pub struct PeekingList<'a, T> {
 }
 impl<'a, T> Urne for PeekingList<'a, T> {
 	type Item = &'a T;
+	type MultiItem = rand::seq::SliceChooseIter<'a, [T], T>;
 
-	fn choose<R: Rng>(&mut self, mut rng: R) -> Self::Item {
-		self.list.choose(&mut rng).unwrap()
+	fn choose<R: Rng>(&mut self, mut rng: R) -> Option<Self::Item> {
+		self.list.choose(&mut rng)
 	}
 
-	fn choose_multiple<R: Rng>(&mut self, mut rng: R, amount: usize) -> Vec<Self::Item> {
-		self.list.choose_multiple(&mut rng, amount).collect()
+	fn choose_multiple<R: Rng>(&mut self, mut rng: R, amount: usize) -> Option<Self::MultiItem> {
+		(amount <= self.list.len()).then(|| self.list.choose_multiple(&mut rng, amount))
 	}
+}
+
+use rand::seq::index::IndexVec;
+
+/// Returns a list of `amount` many indices into a list of `length` size.
+///
+/// It is assumed that each returned index is remove from the list, reducing
+/// the highest valid value for later indices.
+fn sample_removable_index<R: Rng>(mut rng: R, length: usize, amount: usize) -> IndexVec {
+	let length: u32 = length.try_into().unwrap();
+	let amount: u32 = amount.try_into().unwrap();
+
+	let mut indices = Vec::with_capacity(amount as usize);
+	for limit in ((length - amount)..length).rev() {
+		indices.push(rng.gen_range(0..=limit));
+	}
+
+	IndexVec::from(indices)
 }
 
 pub struct TakingList<T> {
@@ -63,14 +82,23 @@ pub struct TakingList<T> {
 }
 impl<T> Urne for TakingList<T> {
 	type Item = T;
+	type MultiItem = Vec<Self::Item>;
 
-	fn choose<R: Rng>(&mut self, mut rng: R) -> Self::Item {
-		let i = rng.gen_range(0..self.list.len());
-		// TODO: consider a `swap_remove`
-		self.list.remove(i)
+	fn choose<R: Rng>(&mut self, mut rng: R) -> Option<Self::Item> {
+		(!self.list.is_empty()).then(|| {
+			let i = rng.gen_range(0..self.list.len());
+			self.list.swap_remove(i)
+		})
 	}
 
-	fn choose_multiple<R: Rng>(&mut self, mut rng: R, amount: usize) -> Vec<Self::Item> {
-		(0..amount).map(|_| self.choose(&mut rng)).collect()
+	fn choose_multiple<R: Rng>(&mut self, rng: R, amount: usize) -> Option<Self::MultiItem> {
+		(amount <= self.list.len()).then(|| {
+			let indices = sample_removable_index(rng, self.list.len(), amount);
+			// TODO: consider wether this can be optimized
+			indices
+				.into_iter()
+				.map(|i| self.list.swap_remove(i))
+				.collect()
+		})
 	}
 }

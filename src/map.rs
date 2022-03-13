@@ -1,9 +1,7 @@
-use alloc::vec::Vec;
-
 use rand::Rng;
 
 use crate::Urne;
-use crate::Urnenmodell;
+use crate::UrneModel;
 
 pub struct Mapper<Model, Fun> {
 	model: Model,
@@ -11,7 +9,7 @@ pub struct Mapper<Model, Fun> {
 }
 impl<Model, Fun> Mapper<Model, Fun>
 where
-	Model: Urnenmodell,
+	Model: UrneModel,
 	Fun: for<'n> Fn<(Model::Item<'n>,)>,
 {
 	pub fn new(model: Model, adapter: Fun) -> Self {
@@ -21,9 +19,9 @@ where
 		}
 	}
 }
-impl<Model, Fun> Urnenmodell for Mapper<Model, Fun>
+impl<Model, Fun> UrneModel for Mapper<Model, Fun>
 where
-	Model: Urnenmodell,
+	Model: UrneModel,
 	Fun: for<'n> Fn<(Model::Item<'n>,)>,
 {
 	type Item<'a> = <Fun as FnOnce<(Model::Item<'a>,)>>::Output where Fun: 'a, Model: 'a;
@@ -55,16 +53,20 @@ where
 	Fun: Fn(U::Item) -> Out,
 {
 	type Item = Out;
+	type MultiItem = core::iter::Map<<<U as Urne>::MultiItem as IntoIterator>::IntoIter, &'a Fun>;
 
-	fn choose<R: Rng>(&mut self, rng: R) -> Self::Item {
-		(self.fun)(self.urne.choose(rng))
+	// Using #![feature(type_alias_impl_trait)]:
+	//type MultiItem = impl IntoIterator<Item=Self::Item>;
+
+	fn choose<R: Rng>(&mut self, rng: R) -> Option<Self::Item> {
+		self.urne.choose(rng).map(self.fun)
 	}
 
-	fn choose_multiple<R: Rng>(&mut self, rng: R, amount: usize) -> Vec<Self::Item> {
-		self.urne
+	fn choose_multiple<R: Rng>(&mut self, rng: R, amount: usize) -> Option<Self::MultiItem> {
+		let foo = self
+			.urne
 			.choose_multiple(rng, amount)
-			.into_iter()
-			.map(self.fun)
-			.collect()
+			.map(|iter| iter.into_iter().map(self.fun));
+		foo
 	}
 }

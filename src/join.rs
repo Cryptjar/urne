@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use rand::Rng;
 
 use crate::Urne;
-use crate::Urnenmodell;
+use crate::UrneModel;
 
 pub struct Joiner<ModelA, ModelB, Fun> {
 	model_a: ModelA,
@@ -12,8 +12,8 @@ pub struct Joiner<ModelA, ModelB, Fun> {
 }
 impl<ModelA, ModelB, Fun> Joiner<ModelA, ModelB, Fun>
 where
-	ModelA: Urnenmodell,
-	ModelB: Urnenmodell,
+	ModelA: UrneModel,
+	ModelB: UrneModel,
 	Fun: for<'n> Fn<(ModelA::Item<'n>, ModelB::Item<'n>)>,
 {
 	pub fn new(model_a: ModelA, model_b: ModelB, adapter: Fun) -> Self {
@@ -24,10 +24,10 @@ where
 		}
 	}
 }
-impl<ModelA, ModelB, Fun> Urnenmodell for Joiner<ModelA, ModelB, Fun>
+impl<ModelA, ModelB, Fun> UrneModel for Joiner<ModelA, ModelB, Fun>
 where
-	ModelA: Urnenmodell,
-	ModelB: Urnenmodell,
+	ModelA: UrneModel,
+	ModelB: UrneModel,
 	Fun: for<'n> Fn<(ModelA::Item<'n>, ModelB::Item<'n>)>,
 {
 	type Item<'a> = <Fun as FnOnce<(ModelA::Item<'a>, ModelB::Item<'a>)>>::Output where Fun: 'a, ModelA: 'a, ModelB: 'a;
@@ -63,17 +63,25 @@ where
 	Fun: Fn<(UrneA::Item, UrneB::Item)>,
 {
 	type Item = <Fun as FnOnce<(UrneA::Item, UrneB::Item)>>::Output;
+	type MultiItem = Vec<Self::Item>;
 
-	fn choose<R: Rng>(&mut self, mut rng: R) -> Self::Item {
-		(self.fun)(self.urne_a.choose(&mut rng), self.urne_b.choose(&mut rng))
+	fn choose<R: Rng>(&mut self, mut rng: R) -> Option<Self::Item> {
+		self.urne_a
+			.choose(&mut rng)
+			.zip(self.urne_b.choose(&mut rng))
+			.map(|(a, b)| (self.fun)(a, b))
 	}
 
-	fn choose_multiple<R: Rng>(&mut self, mut rng: R, amount: usize) -> Vec<Self::Item> {
+	fn choose_multiple<R: Rng>(&mut self, mut rng: R, amount: usize) -> Option<Self::MultiItem> {
 		self.urne_a
 			.choose_multiple(&mut rng, amount)
-			.into_iter()
 			.zip(self.urne_b.choose_multiple(&mut rng, amount))
-			.map(|(a, b)| (self.fun)(a, b))
-			.collect()
+			.map(|(iter_a, iter_b)| {
+				iter_a
+					.into_iter()
+					.zip(iter_b)
+					.map(|(a, b)| (self.fun)(a, b))
+					.collect()
+			})
 	}
 }

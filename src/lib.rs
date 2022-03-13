@@ -17,7 +17,9 @@ pub mod map;
 
 
 /// An Urn Model
-pub trait Urnenmodell {
+///
+/// Describes a family of [`Urne`]n.
+pub trait UrneModel {
 	type Item<'a>
 	where
 		Self: 'a;
@@ -33,9 +35,9 @@ pub trait Urnenmodell {
 	fn peeking(&self) -> Self::Peeking<'_>;
 	fn taking(&self) -> Self::Taking<'_>;
 }
-impl<T> Urnenmodell for &'_ T
+impl<T: ?Sized> UrneModel for &'_ T
 where
-	T: Urnenmodell,
+	T: UrneModel,
 {
 	type Item<'a> = T::Item<'a> where T: 'a, Self: 'a;
 	type Peeking<'a> = T::Peeking<'a> where T: 'a, Self: 'a;
@@ -51,29 +53,59 @@ where
 }
 
 /// An Urn
-// Maybe bound Iterator
 pub trait Urne {
-	// maybe replace with `Iterator::Item`
 	type Item;
+	type MultiItem: IntoIterator<Item = Self::Item>;
 
-	// maybe replace with `Iterator::next`
-	fn choose<R: Rng>(&mut self, rng: R) -> Self::Item {
-		self.choose_multiple(rng, 1).remove(0)
+	/// Returns a random item
+	///
+	/// # Returns
+	/// `None` if `self` is empty.
+	fn choose<R: Rng>(&mut self, rng: R) -> Option<Self::Item> {
+		self.choose_multiple(rng, 1)
+			.and_then(|iter| iter.into_iter().next())
 	}
 
-	fn choose_multiple<R: Rng>(&mut self, rng: R, amount: usize) -> Vec<Self::Item>;
+	/// Returns a list of mutually unique items form this urn
+	///
+	/// # Returns
+	/// `None` if `self` contains less than `amount` items.
+	fn choose_multiple<R: Rng>(&mut self, rng: R, amount: usize) -> Option<Self::MultiItem>;
 }
-impl<T> Urne for &'_ mut T
+impl<T: ?Sized> Urne for &'_ mut T
+where
+	T: Urne,
+{
+	type Item = T::Item;
+	type MultiItem = T::MultiItem;
+
+	fn choose<R: Rng>(&mut self, rng: R) -> Option<Self::Item> {
+		T::choose(self, rng)
+	}
+
+	fn choose_multiple<R: Rng>(&mut self, rng: R, amount: usize) -> Option<Self::MultiItem> {
+		T::choose_multiple(self, rng, amount)
+	}
+}
+
+pub trait UrneObj<R: Rng> {
+	type Item;
+
+	fn choose(&mut self, rng: &mut R) -> Option<Self::Item>;
+
+	fn choose_multiple(&mut self, rng: &mut R, amount: usize) -> Option<Vec<Self::Item>>;
+}
+impl<T, R: Rng> UrneObj<R> for T
 where
 	T: Urne,
 {
 	type Item = T::Item;
 
-	fn choose<R: Rng>(&mut self, rng: R) -> Self::Item {
-		T::choose(self, rng)
+	fn choose(&mut self, rng: &mut R) -> Option<Self::Item> {
+		<T as Urne>::choose(self, rng)
 	}
 
-	fn choose_multiple<R: Rng>(&mut self, rng: R, amount: usize) -> Vec<Self::Item> {
-		T::choose_multiple(self, rng, amount)
+	fn choose_multiple(&mut self, rng: &mut R, amount: usize) -> Option<Vec<Self::Item>> {
+		<T as Urne>::choose_multiple(self, rng, amount).map(|iter| iter.into_iter().collect())
 	}
 }
