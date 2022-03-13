@@ -41,6 +41,10 @@ where
 			fun: &self.adapter,
 		}
 	}
+
+	fn size(&self) -> usize {
+		self.model.size()
+	}
 }
 
 pub struct MapUrne<'a, U, Fun> {
@@ -68,5 +72,9 @@ where
 			.choose_multiple(rng, amount)
 			.map(|iter| iter.into_iter().map(self.fun));
 		foo
+	}
+
+	fn size(&self) -> usize {
+		self.urne.size()
 	}
 }

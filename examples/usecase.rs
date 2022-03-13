@@ -85,19 +85,22 @@ fn test<R: Rng>(mut rng: R) {
 
 	let person_model = Joiner::new(adj_model, name_model, Person::new);
 
-
 	println!();
+	println!("Size: {}", person_model.size());
 	println!("Peeking:");
 	let mut persons = person_model.peeking();
 	print_multiple_items(&mut persons, &mut rng);
 	println!();
+	println!("rest size: {}", persons.size());
 	print_multiple_items(&mut persons, &mut rng);
 
 	println!();
+	println!("Size: {}", person_model.size());
 	println!("Taking:");
 	let mut persons = person_model.taking();
 	print_multiple_items(&mut persons, &mut rng);
 	println!();
+	println!("rest size: {}", persons.size());
 	print_multiple_items(&mut persons, &mut rng);
 }
 

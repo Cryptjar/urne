@@ -49,6 +49,10 @@ where
 			fun: &self.adapter,
 		}
 	}
+
+	fn size(&self) -> usize {
+		core::cmp::min(self.model_a.size() , self.model_b.size())
+	}
 }
 
 pub struct JoinUrne<'a, UrneA, UrneB, Fun> {
@@ -83,5 +87,9 @@ where
 					.map(|(a, b)| (self.fun)(a, b))
 					.collect()
 			})
+	}
+
+	fn size(&self) -> usize {
+		core::cmp::min(self.urne_a.size() , self.urne_b.size())
 	}
 }

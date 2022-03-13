@@ -41,6 +41,10 @@ where
 			list: self.list.as_ref().iter().collect(),
 		}
 	}
+
+	fn size(&self) -> usize {
+		self.list.as_ref().len()
+	}
 }
 
 pub struct PeekingList<'a, T> {
@@ -56,6 +60,10 @@ impl<'a, T> Urne for PeekingList<'a, T> {
 
 	fn choose_multiple<R: Rng>(&mut self, mut rng: R, amount: usize) -> Option<Self::MultiItem> {
 		(amount <= self.list.len()).then(|| self.list.choose_multiple(&mut rng, amount))
+	}
+
+	fn size(&self) -> usize {
+		self.list.len()
 	}
 }
 
@@ -100,5 +108,9 @@ impl<T> Urne for TakingList<T> {
 				.map(|i| self.list.swap_remove(i))
 				.collect()
 		})
+	}
+
+	fn size(&self) -> usize {
+		self.list.len()
 	}
 }

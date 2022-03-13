@@ -35,6 +35,7 @@ pub trait UrneModel {
 
 	fn peeking(&self) -> Self::Peeking<'_>;
 	fn taking(&self) -> Self::Taking<'_>;
+	fn size(&self) -> usize;
 }
 impl<T: ?Sized> UrneModel for &'_ T
 where
@@ -50,6 +51,10 @@ where
 
 	fn taking(&self) -> Self::Taking<'_> {
 		T::taking(self)
+	}
+
+	fn size(&self) -> usize {
+		T::size(self)
 	}
 }
 
@@ -72,6 +77,8 @@ pub trait Urne {
 	/// # Returns
 	/// `None` if `self` contains less than `amount` items.
 	fn choose_multiple<R: Rng>(&mut self, rng: R, amount: usize) -> Option<Self::MultiItem>;
+
+	fn size(&self) -> usize;
 }
 impl<T: ?Sized> Urne for &'_ mut T
 where
@@ -87,6 +94,10 @@ where
 	fn choose_multiple<R: Rng>(&mut self, rng: R, amount: usize) -> Option<Self::MultiItem> {
 		T::choose_multiple(self, rng, amount)
 	}
+
+	fn size(&self) -> usize {
+		T::size(self)
+	}
 }
 
 pub trait UrneObj<R: Rng> {
@@ -95,6 +106,8 @@ pub trait UrneObj<R: Rng> {
 	fn choose(&mut self, rng: &mut R) -> Option<Self::Item>;
 
 	fn choose_multiple(&mut self, rng: &mut R, amount: usize) -> Option<Vec<Self::Item>>;
+
+	fn size(&self) -> usize;
 }
 impl<T, R: Rng> UrneObj<R> for T
 where
@@ -108,5 +121,9 @@ where
 
 	fn choose_multiple(&mut self, rng: &mut R, amount: usize) -> Option<Vec<Self::Item>> {
 		<T as Urne>::choose_multiple(self, rng, amount).map(|iter| iter.into_iter().collect())
+	}
+
+	fn size(&self) -> usize {
+		<T as Urne>::size(self)
 	}
 }

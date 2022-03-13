@@ -64,6 +64,10 @@ where
 			fun: &self.adapter,
 		}
 	}
+
+	fn size(&self) -> usize {
+		self.model_a.size() + self.model_b.size()
+	}
 }
 
 pub struct ChainUrne<'a, UrneA, UrneB, Fun> {
@@ -132,5 +136,9 @@ where
 				.map(self.fun)
 				.collect()
 		})
+	}
+
+	fn size(&self) -> usize {
+		self.urne_a.size() + self.urne_b.size()
 	}
 }
