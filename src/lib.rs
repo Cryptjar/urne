@@ -11,9 +11,9 @@ use rand::Rng;
 
 // TODO: add aggregate functionality
 
+pub mod chain;
 pub mod join;
 pub mod list;
-pub mod chain;
 pub mod map;
 
 

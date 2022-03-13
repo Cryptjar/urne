@@ -1,10 +1,10 @@
 use alloc::vec::Vec;
 
+use either::Either;
 use rand::Rng;
 
 use crate::Urne;
 use crate::UrneModel;
-use either::Either;
 
 
 // TODO: consider removing the `adapter` and directly returning `Either`
@@ -22,11 +22,17 @@ where
 	ModelB: UrneModel,
 	Fun: for<'n> Fn<(Either<ModelA::Item<'n>, ModelB::Item<'n>>,)>,
 {
-	pub fn new(model_a: ModelA, model_b: ModelB, weigh_left: u32, weigh_right: u32, adapter: Fun) -> Self {
+	pub fn new(
+		model_a: ModelA,
+		model_b: ModelB,
+		weigh_left: u32,
+		weigh_right: u32,
+		adapter: Fun,
+	) -> Self {
 		Chain {
 			model_a,
 			model_b,
-			ratio_left: (weigh_left, weigh_left+weigh_right),
+			ratio_left: (weigh_left, weigh_left + weigh_right),
 			adapter,
 		}
 	}
@@ -78,47 +84,53 @@ where
 	fn choose<R: Rng>(&mut self, mut rng: R) -> Option<Self::Item> {
 		let take_left = rng.gen_ratio(self.ratio_left.0, self.ratio_left.1);
 
-		let either = {if take_left {
-			self.urne_a
-			.choose(&mut rng)
-			.map(|a| Either::Left(a)).or_else(|| self.urne_b
-			.choose(&mut rng).map(|b| Either::Right(b)))
-		} else {
-			self.urne_b
-			.choose(&mut rng).map(|b| Either::Right(b)).or_else(|| self.urne_a
-			.choose(&mut rng)
-			.map(|a| Either::Left(a)))
-		}};
+		let either = {
+			if take_left {
+				self.urne_a
+					.choose(&mut rng)
+					.map(|a| Either::Left(a))
+					.or_else(|| self.urne_b.choose(&mut rng).map(|b| Either::Right(b)))
+			} else {
+				self.urne_b
+					.choose(&mut rng)
+					.map(|b| Either::Right(b))
+					.or_else(|| self.urne_a.choose(&mut rng).map(|a| Either::Left(a)))
+			}
+		};
 
-		either
-			.map(self.fun)
+		either.map(self.fun)
 	}
 
 	fn choose_multiple<R: Rng>(&mut self, mut rng: R, amount: usize) -> Option<Self::MultiItem> {
-
 		// TODO consider, relaxing `Option<impl Iterator>` as a return type
 		// Because this the current design can easily lead to a None, especially,
 		// in the taking-path.
 
-		let distribution: Vec<bool> = (0..amount).map(|_| rng.gen_ratio(self.ratio_left.0, self.ratio_left.1)).collect();
+		let distribution: Vec<bool> = (0..amount)
+			.map(|_| rng.gen_ratio(self.ratio_left.0, self.ratio_left.1))
+			.collect();
 
 		let left_amt = distribution.iter().filter(|b| **b).count();
 		let right_amt = amount - left_amt;
 
-		let lefts = self.urne_a
-			.choose_multiple(&mut rng, left_amt);
+		let lefts = self.urne_a.choose_multiple(&mut rng, left_amt);
 
 		let rights = self.urne_b.choose_multiple(&mut rng, right_amt);
 
 		lefts.zip(rights).map(|(iter_a, iter_b)| {
 			let (mut iter_a, mut iter_b) = (iter_a.into_iter(), iter_b.into_iter());
 
-			distribution.into_iter().map(|take_left| if take_left {
-				Either::Left(iter_a.next().unwrap())
-			} else {
-				Either::Right(iter_b.next().unwrap())
-			})
-					.map(self.fun).collect()
+			distribution
+				.into_iter()
+				.map(|take_left| {
+					if take_left {
+						Either::Left(iter_a.next().unwrap())
+					} else {
+						Either::Right(iter_b.next().unwrap())
+					}
+				})
+				.map(self.fun)
+				.collect()
 		})
 	}
 }

@@ -1,11 +1,11 @@
 use core::fmt::Display;
 
+use either::Either;
 use rand::Rng;
 use urne::chain::Chain;
 use urne::list::List;
 use urne::Urne;
 use urne::UrneModel;
-use either::Either;
 
 
 fn print_multiple_items<R: Rng, P: Urne>(mut pool: P, rng: R)
