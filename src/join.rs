@@ -51,7 +51,7 @@ where
 	}
 
 	fn size(&self) -> usize {
-		core::cmp::min(self.model_a.size() , self.model_b.size())
+		core::cmp::min(self.model_a.size(), self.model_b.size())
 	}
 }
 
@@ -90,6 +90,6 @@ where
 	}
 
 	fn size(&self) -> usize {
-		core::cmp::min(self.urne_a.size() , self.urne_b.size())
+		core::cmp::min(self.urne_a.size(), self.urne_b.size())
 	}
 }
