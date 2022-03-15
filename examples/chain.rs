@@ -24,7 +24,9 @@ fn selector<'a>(either: Either<&'a &'_ str, &'a String>) -> &'a str {
 	}
 }
 
-fn test<R: Rng>(mut rng: R) {
+fn main() {
+	let mut rng = rand::thread_rng();
+
 	let adj_list = vec!["flat", "nice", "tall", "small", "avr", "cold"];
 	let adj_model = List::new(adj_list);
 
@@ -46,14 +48,4 @@ fn test<R: Rng>(mut rng: R) {
 	print_multiple_items(&mut chained, &mut rng);
 	println!();
 	print_multiple_items(&mut chained, &mut rng);
-}
-
-fn main() {
-	// Needs `default` feature to run (i.e. `rand/default`)
-	#[cfg(feature = "default")]
-	{
-		use rand::thread_rng;
-
-		test(thread_rng());
-	}
 }
