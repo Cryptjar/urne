@@ -147,6 +147,7 @@ where
 		let left_amt = distribution.iter().filter(|b| **b).count();
 		let right_amt = amount - left_amt;
 
+		// There should be enough items in both Urnen
 		debug_assert!(
 			left_amt <= self.urne_a.size(),
 			"Not enough items in first Urne"
@@ -156,24 +157,31 @@ where
 			"Not enough items in second Urne"
 		);
 
-		let lefts = self.urne_a.choose_multiple(&mut rng, left_amt);
-		let rights = self.urne_b.choose_multiple(&mut rng, right_amt);
+		// Neither should fail
+		let mut lefts = self
+			.urne_a
+			.choose_multiple(&mut rng, left_amt)
+			.unwrap()
+			.into_iter();
+		let mut rights = self
+			.urne_b
+			.choose_multiple(&mut rng, right_amt)
+			.unwrap()
+			.into_iter();
 
-		lefts.zip(rights).map(|(iter_a, iter_b)| {
-			let (mut iter_a, mut iter_b) = (iter_a.into_iter(), iter_b.into_iter());
-
+		Some(
 			distribution
 				.into_iter()
 				.map(|take_left| {
 					if take_left {
-						Either::Left(iter_a.next().unwrap())
+						Either::Left(lefts.next().unwrap())
 					} else {
-						Either::Right(iter_b.next().unwrap())
+						Either::Right(rights.next().unwrap())
 					}
 				})
 				.map(self.fun)
-				.collect()
-		})
+				.collect(),
+		)
 	}
 
 	fn size(&self) -> usize {
