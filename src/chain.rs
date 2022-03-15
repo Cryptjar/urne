@@ -8,6 +8,7 @@ use crate::UrneModel;
 
 
 // TODO: consider removing the `adapter` and directly returning `Either`
+//       or enforce that both items implement `Into<T>` and add `T` as phantom.
 
 
 pub struct Chain<ModelA, ModelB, Fun> {
@@ -106,19 +107,44 @@ where
 	}
 
 	fn choose_multiple<R: Rng>(&mut self, mut rng: R, amount: usize) -> Option<Self::MultiItem> {
-		// TODO consider, relaxing `Option<impl Iterator>` as a return type
-		// Because this the current design can easily lead to a None, especially,
-		// in the taking-path.
+		use rand::seq::IteratorRandom;
 
-		let distribution: Vec<bool> = (0..amount)
+		// early exit
+		if self.size() < amount {
+			return None;
+		}
+
+		let mut distribution: Vec<bool> = (0..amount)
 			.map(|_| rng.gen_ratio(self.ratio_left.0, self.ratio_left.1))
 			.collect();
 
 		let left_amt = distribution.iter().filter(|b| **b).count();
 		let right_amt = amount - left_amt;
 
-		let lefts = self.urne_a.choose_multiple(&mut rng, left_amt);
+		if self.urne_a.size() < left_amt {
+			// If A contains too few item, turn some `true`s into `false`s
+			let rm = left_amt - self.urne_a.size();
+			let refs = distribution.iter_mut().filter(|b| **b == true).choose_multiple(&mut rng, rm);
+			for r in refs {
+				*r = false
+			}
+		} else if self.urne_b.size() < right_amt {
+			// If B contains too few item, turn some `false`s into `true`s
+			let rm = right_amt - self.urne_b.size();
+			let refs = distribution.iter_mut().filter(|b| **b == false).choose_multiple(&mut rng, rm);
+			for r in refs {
+				*r = true
+			}
+		}
 
+		// Recalculate amounts, since we just changed them
+		let left_amt = distribution.iter().filter(|b| **b).count();
+		let right_amt = amount - left_amt;
+
+		debug_assert!(left_amt <= self.urne_a.size(), "Not enough items in first Urne");
+		debug_assert!(right_amt <= self.urne_b.size(), "Not enough items in second Urne");
+
+		let lefts = self.urne_a.choose_multiple(&mut rng, left_amt);
 		let rights = self.urne_b.choose_multiple(&mut rng, right_amt);
 
 		lefts.zip(rights).map(|(iter_a, iter_b)| {
